@@ -1,0 +1,13 @@
+// $Id$
+// vim:ft=javascript
+
+// If your extension references something external, use ARG_WITH
+// ARG_WITH("daemon_tools", "for daemon_tools support", "no");
+
+// Otherwise, use ARG_ENABLE
+// ARG_ENABLE("daemon_tools", "enable daemon_tools support", "no");
+
+if (PHP_DAEMON_TOOLS != "no") {
+	EXTENSION("daemon_tools", "daemon_tools.c");
+}
+
