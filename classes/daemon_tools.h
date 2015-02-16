@@ -3,13 +3,18 @@
 
 PHP_METHOD(DaemonTools, fdClose);
 PHP_METHOD(DaemonTools, dup);
+PHP_METHOD(DaemonTools, isLocking);
 PHP_METHOD(DaemonTools, lock);
 PHP_METHOD(DaemonTools, unlock);
+
+ZEND_BEGIN_ARG_INFO_EX(DaemonTools_dup, 0, 0, 0)
+ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(DaemonTools_fdClose, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(DaemonTools_dup, 0, 0, 0)
+ZEND_BEGIN_ARG_INFO_EX(DaemonTools_isLocking, 0, 0, 1)
+ZEND_ARG_INFO(0, resource)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(DaemonTools_lock, 0, 0, 1)
@@ -31,10 +36,44 @@ extern zend_function_entry dt_daemon_tools_methods[];
 zend_function_entry dt_daemon_tools_methods[] = {
 		PHP_ME(DaemonTools,  dup,       DaemonTools_dup,       ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 		PHP_ME(DaemonTools,  fdClose,   DaemonTools_fdClose,   ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+		PHP_ME(DaemonTools,  isLocking, DaemonTools_isLocking, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 		PHP_ME(DaemonTools,  lock,      DaemonTools_lock,      ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 		PHP_ME(DaemonTools,  unlock,    DaemonTools_unlock,    ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 		PHP_FE_END
 };
+
+
+PHP_METHOD(DaemonTools, isLocking)
+{
+	zval *arg1 = NULL;
+	php_stream *stream;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &arg1) == FAILURE) {
+		zend_throw_exception(
+				spl_ce_InvalidArgumentException, NULL, 0 TSRMLS_CC);
+		return;
+	}
+
+	php_stream_from_zval_no_verify(stream, &arg1);
+
+	if (stream == NULL) {
+		zend_throw_exception(
+				spl_ce_InvalidArgumentException, "The stream can't be null", 0 TSRMLS_CC);
+		return;
+	}
+
+    int fd;
+
+    if (SUCCESS == php_stream_cast(stream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) && fd != -1) {
+    	if (0 == lockf(fd, F_TEST, 0)) {
+    		RETURN_FALSE;
+    	}
+    }
+
+    RETURN_TRUE;
+}
+/* }}} */
+
 
 PHP_METHOD(DaemonTools, lock)
 {
